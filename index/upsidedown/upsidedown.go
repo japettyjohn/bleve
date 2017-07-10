@@ -50,8 +50,7 @@ const Version uint8 = 7
 var IncompatibleVersion = fmt.Errorf("incompatible version, %d is supported", Version)
 
 const (
-	CountDocsKey  = "count-docs"
-	CountDocsSkip = "skip"
+	CountDocsProvide = "count-docs-provide"
 )
 
 type UpsideDownCouch struct {
@@ -337,10 +336,13 @@ func (udc *UpsideDownCouch) Open() (err error) {
 		}
 
 		// set doc count
-		countConfig, _ := udc.storeConfig[CountDocsKey]
-		switch countConfig {
-		case CountDocsSkip:
-		default:
+		if count, ok := udc.storeConfig[CountDocsProvide]; ok {
+			if countI, ok := count.(uint64); ok {
+				udc.m.Lock()
+				udc.docCount = countI
+				udc.m.Unlock()
+			}
+		} else {
 			udc.m.Lock()
 			udc.docCount, err = udc.countDocs(kvreader)
 			udc.m.Unlock()
